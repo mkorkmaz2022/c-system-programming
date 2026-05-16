@@ -1,0 +1,12 @@
+102 level 1
+106 process 1
+110 sorting 1
+104 system 2
+108 buffer 2
+112 shared 2
+101 apple 3
+105 letter 3
+109 semaphore 3
+103 kernel 4
+107 thread 4
+111 parallel 4

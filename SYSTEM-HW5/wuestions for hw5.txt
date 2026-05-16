@@ -1,0 +1,102 @@
+
+
+
+
+
+Fatma Nur Esirci
+Dün 13:10
+HW5 Questions
+If you have any questions about the assignment, you can post them here.
+
+
+ÖMER FARUK GEDİKLİ
+Dün 13:32
+input formatında name alanı alphanumeric, no spaces olarak yazıyor ama örnek dosyalarda Ahmet_Yilmaz gibi underscore içeren isimler var ayrica 20orders_mix.txt içinde Tarık_Demir Türkçe karakter iceriyor. Parser underscore ve utf-8 karakterleri Kabul etmeli mi, yoksa sadece boşluksuz string olarak mı ele alınmalı?
+
+Fatma Nur Esirci
+Dün 15:17
+In 20orders_mix.txt, line 17 must be corrected: -> replace Tarık_Demir with Tarik_Demir (no Turkish characters).
+names may contain only ASCII letters, digits, and underscores  (no spaces or non-ASCII characters).
+
+ABDULLAH KIRICIOĞLU
+Dün 15:24
+Hocam benim de 2 sorum var.
+
+ 
+
+İlk sorum şu: PDF'te önce main thread <orders.txt>'yi okuyup bütün order'ları priority queue'ya yerleştirsin, sonra courier thread'ler create edilip shift'lerine başlasınlar istiyor ama courier'ler bütün order'lar queue'ya eklendikten sonra çalışmaya başlarsa queue'yu hiç boş göremeyecekleri için "WAITING" output'unu da hiç yazmayacaklar. (En son order queue'dan alındıktan sonra queue boş olacak ama o noktada zaten courier'lar pthread_cond_wait ile yeni bir order'ın queue'ya eklenmesini beklemek yerine çıkış yapacaklar.)
+
+ 
+
+Ancak çelişkili olarak PDF'teki example output'ta courier-2 bir kez WAITING yazıyor. Courier'lar, main thread order'ları queue'ya yerleştirmeden önce shift'lerine başlarsalar böyle bir durum mümkün aslında ama PDF'te tam tersi sırayla yapmamız isteniyor. Ne yapmalıyız?
+
+ 
+
+İkinci sorum ise şu: PDF'te terminale yazılan output'ların karışmaması için log_mutex diye bir mutex kullanmamız isteniyor ama stdio.h'daki io fonksiyonlarının çoğu (printf ve fprintf dahil) file stream'ler üzerinde operate ederken zaten internal bir lock kullanıyorlar.
+
+ 
+
+POSIX bu fonksiyonların böyle davranması gerektiğini özellikle belirtiyor:
+
+https://pubs.opengroup.org/onlinepubs/9799919799/functions/V2_chap02.html#tag_16_05
+
+(Section 2.5 Standard I/O Streams, "At program start-up" ve hemen altındaki "Each stream shall" ile başlayan paragraflar.)
+
+ 
+
+Man page'lerde de POSIX'in bu gereksinimine uyulduğu şu şekilde ifade ediliyor:
+
+https://man7.org/linux/man-pages/man3/flockfile.3.html
+
+ 
+
+PDF'te belirtildiği gibi ekstra bir senkronizasyon mekanizması, birden falza process aynı terminale yazıyor olsaydı gerekliydi ama aynı process içindeki thread'ler için gerekli değil o yüzden. Yine de log_mutex kullanmamızı istiyor musunuz?
+
+Fatma Nur Esirci
+Dün 15:30
+In your test scenarios courier count is less than order count, so WAITING may not appear. This is correct behavior. Grading will include additional test cases with different courier and order counts.
+
+ 
+
+A single printf is atomic, but if your log line uses multiple printf calls, threads can interleave and corrupt the output.
+
+ÖMER FARUK GEDİKLİ
+Dün 19:09
+what exactly is the Total time in the statistics file? should it be the sum of the durations of completed deliveries, or the actual/wall-clock running time of the program? In the example output, the given total_time doesn't seem to match the order durations.
+
+Fatma Nur Esirci
+Dün 20:26
+Total time is the sum of completed delivery durations, not actual running time.
+
+ÖMER FARUK GEDİKLİ
+Dün 20:31
+-in the case of a SIGINT which value in the stats file should be used to calculate avg per order? should it be divided by the number of completed orders  or the sum of completed and canceled orders ? if completed equals 0, should Avg per order be 0  ?
+
+ 
+
+-if -n 2 and ~2 secpds are used in the SIGINT test with 20orders_mix.txt  all jobs may be finished. when in this case, should cancelled = 0 be accepted after SIGINT? or should we send the SIGINT earlier and presnt an output showing pending cancelations in the report?
+
+
+
+
+
+
+
+
+
+
+
+EMRE KAAN ŞAHİN
+Dün 20:37
+Should priority correctness be evaluated based on the line order of the DELIVERY_START in stdout? In other words, should all EXPRESS DELIVERY_START lines appear before STANDARD/ECONOMY? To guarantee this, would it be appropriate to print the DELIVERY_START log while it's inside the queue_mutex?
+
+Is it acceptable to use sigwait() in a separate signal thread for SIGINT, or must sigwait be done by the main thread?
+
+Fatma Nur Esirci
+Dün 22:36
+Test 1 "What to Verify" has been updated. "All EXPRESS DELIVERY_START lines appear before any STANDARD or ECONOMY" has been removed.
+
+Fatma Nur Esirci
+Dün 22:43
+It is up to you (SIGINT), choose the approach that fits your design.
+

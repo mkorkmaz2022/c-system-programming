@@ -1,0 +1,75 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{tabularx}
+\usepackage{hyperref}
+\geometry{a4paper, margin=1in}
+
+\title{\textbf{CSE344 - System Programming} \\ \Large Homework \#1 Report}
+\author{Muhammed Korkmaz \\ Student ID: 220104004043}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+This report outlines the design and implementation of an "advanced" POSIX-compatible file search utility. The primary objective of this program is to recursively traverse a specified directory subtree and filter files based on user-defined criteria, which include filename pattern, size, type, permissions, and link count. The filtered results are then displayed in a visually structured, nicely formatted tree hierarchy.
+
+\section{Program Design}
+To achieve the exact tree-formatted output without printing empty or unmatched directories, an in-memory n-ary tree data structure (\texttt{TreeNode}) was designed. 
+
+\begin{itemize}
+    \item \textbf{Data Structure:} Every visited file and directory is stored as a node. A boolean flag (\texttt{has\_match}) is propagated bottom-up from the leaves to the root. If a directory contains no matching files in any of its subtrees, it is completely pruned from the final output.
+    \item \textbf{Argument Parsing:} Command-line arguments are securely handled using the \texttt{getopt()} library function.
+    \item \textbf{Memory Management:} To strictly prevent memory leaks, a recursive \texttt{free\_tree()} function was implemented. The program has been rigorously tested with Valgrind to ensure zero leaks under all conditions.
+    \item \textbf{Signal Handling:} A \texttt{SIGINT} (CTRL-C) handler was integrated using \texttt{sigaction} to gracefully halt execution, free all dynamically allocated resources, and print an informative termination message before exiting.
+\end{itemize}
+
+\section{Algorithm}
+The fundamental workflow of the program proceeds as follows:
+\begin{enumerate}
+    \item Parse command-line parameters via \texttt{getopt()} and validate that the mandatory \texttt{-w} path is provided and accessible.
+    \item Initialize the root \texttt{TreeNode} for the target directory.
+    \item Recursively traverse the directory using \texttt{opendir()} and \texttt{readdir()}. Ignore \texttt{.} and \texttt{..} entries.
+    \item For each entry, retrieve its metadata using \texttt{lstat()} and evaluate it against the active search criteria (\texttt{-f}, \texttt{-b}, \texttt{-t}, \texttt{-p}, \texttt{-l}).
+    \item If an entry matches the criteria, mark its \texttt{is\_match} flag as true, and trigger the \texttt{has\_match} flag for all its parent nodes.
+    \item Recursively descend into subdirectories.
+    \item After traversal, recursively print the tree starting from the root, adjusting the indentation (number of dashes) based on the current depth. Nodes with \texttt{has\_match == false} are ignored.
+    \item Free the entire tree structure and exit.
+\end{enumerate}
+
+\section{Pattern Matching Implementation}
+As the use of external regular expression libraries was prohibited, a custom \texttt{match\_regex} function was implemented. The required \texttt{+} operator signifies one or more occurrences of the immediately preceding character. 
+
+The algorithm uses a two-pointer approach iterating over the pattern and the target string simultaneously. When a \texttt{+} is detected at the next index in the pattern, it consumes at least one matching character in the target string and continues to consume any consecutive identical characters. The comparison is strictly case-insensitive, accomplished by converting both characters to lowercase via \texttt{tolower()} before comparison.
+
+\section{System Calls and POSIX Functions Used}
+The program exclusively relies on standard POSIX functions for directory traversal and file I/O operations.
+\vspace{0.5cm}
+
+\noindent
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Function} & \textbf{Purpose} \\
+\hline
+\texttt{opendir()} & Opens a directory stream for traversal. \\
+\hline
+\texttt{readdir()} & Reads successive entries from the directory stream. \\
+\hline
+\texttt{closedir()} & Closes the directory stream to prevent file descriptor leaks. \\
+\hline
+\texttt{lstat()} & Retrieves file metadata (size, type, permissions, links) without following symbolic links. \\
+\hline
+\texttt{getopt()} & Parses command-line arguments and flags. \\
+\hline
+\texttt{sigaction()} & Intercepts the \texttt{SIGINT} signal for graceful resource cleanup. \\
+\hline
+\end{tabularx}
+
+\section{Error Handling}
+Robust error handling is implemented across all system calls. If a non-critical error occurs (e.g., lack of read permissions for a specific subdirectory), a nicely formatted warning containing the \texttt{strerror(errno)} string is printed to \texttt{stderr}, and the traversal safely continues to other branches. For critical errors (e.g., memory allocation failure or an invalid root path), the program prints an informative message to \texttt{stderr} and immediately halts execution.
+
+\section{Conclusion}
+This implementation successfully fulfills all the requirements of an advanced POSIX file search utility. It accurately filters files based on various metadata combinations, handles regular expressions without third-party libraries, and securely manages memory and system resources. The hierarchical tree formatting provides a clean and readable output for the user.
+
+\end{document}
